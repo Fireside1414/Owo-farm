@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - OWO Farm</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { darkbg: '#0f172a', darkcard: '#1e293b' } } } }
+    </script>
+</head>
+<body class="bg-darkbg text-gray-200 font-sans h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-darkcard p-8 rounded-2xl shadow-2xl border border-gray-700">
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl mx-auto flex items-center justify-center shadow-lg mb-4">
+                <i class="fa-solid fa-lock text-2xl text-white"></i>
+            </div>
+            <h1 class="text-2xl font-bold">OWO Security</h1>
+            <p class="text-gray-400 text-sm mt-1">Vui lòng nhập mật khẩu để truy cập</p>
+        </div>
+
+        <form action="/login" method="POST" class="space-y-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2">Mật khẩu</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
+                        <i class="fa-solid fa-key"></i>
+                    </span>
+                    <input type="password" name="password" required 
+                        class="w-full bg-[#0f172a] border border-gray-600 rounded-lg py-3 pl-10 pr-4 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-colors"
+                        placeholder="••••••••">
+                </div>
+            </div>
+
+            <button type="submit" 
+                class="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-3 rounded-lg shadow-lg transform transition-all active:scale-95">
+                ĐĂNG NHẬP
+            </button>
+        </form>
+        
+        <div id="error-msg" class="hidden mt-4 text-center text-red-400 text-sm font-bold bg-red-900/20 py-2 rounded border border-red-900/50">
+            <i class="fa-solid fa-circle-exclamation mr-1"></i> Sai mật khẩu!
+        </div>
+    </div>
+
+    <script>
+        // Kiểm tra nếu URL có ?error=1 thì hiện thông báo lỗi
+        if (window.location.search.includes('error=1')) {
+            document.getElementById('error-msg').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
