@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OWO Farm Manager</title>
+    <title>OWO Farm Ultimate Manager</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -11,20 +11,35 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
     <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+
     <script src="/socket.io/socket.io.js"></script>
 
     <style>
+        /* Tắt thanh cuộn mặc định nhưng vẫn cho phép cuộn nội dung */
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Terminal cần cuộn được */
         .xterm-viewport { overflow-y: auto !important; }
+        
+        /* Fix lỗi iOS zoom khi nhập liệu */
         input, textarea { font-size: 16px !important; }
         
-        .toggle-checkbox:checked { right: 0; border-color: #68D391; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #68D391; }
+        /* Hiệu ứng Toggle Switch (Nút gạt) */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #68D391;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #68D391;
+        }
         
+        /* Hiệu ứng Smart Tags (Nút chọn Gem/Trait) */
         .select-tag input:checked + div {
-            background-color: #7c3aed;
+            background-color: #7c3aed; /* Purple */
             border-color: #8b5cf6;
             color: white;
+            box-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
         }
     </style>
     
@@ -39,68 +54,136 @@
 
     <header class="h-12 bg-darkcard border-b border-gray-700 flex items-center justify-between px-4 shrink-0 md:hidden z-20">
         <div class="flex items-center gap-2">
-            <i class="fa-solid fa-robot text-purple-500"></i>
+            <i class="fa-solid fa-robot text-purple-500 text-lg"></i>
             <span class="font-bold tracking-wider text-sm">OWO FARM</span>
         </div>
-        <div id="status-badge-mobile" class="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-800 text-gray-400 border border-gray-700">LOADING...</div>
+        <div id="status-badge-mobile" class="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-800 text-gray-400 border border-gray-700 animate-pulse">
+            CONNECTING...
+        </div>
     </header>
 
-    <aside class="hidden md:flex w-64 bg-darkcard border-r border-gray-700 flex-col shrink-0">
+    <aside class="hidden md:flex w-72 bg-darkcard border-r border-gray-700 flex-col shrink-0 transition-all duration-300">
         <div class="p-6 flex items-center gap-3 border-b border-gray-700">
-            <i class="fa-solid fa-robot text-purple-500 text-2xl"></i>
-            <h1 class="text-xl font-bold tracking-wider">OWO CONTROL</h1>
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center shadow-lg">
+                <i class="fa-solid fa-robot text-white text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-wider leading-tight">OWO TOOL</h1>
+                <p class="text-xs text-gray-500">Manager Pro</p>
+            </div>
         </div>
+        
         <nav class="flex-1 p-4 space-y-2">
-            <button onclick="switchTab('dashboard')" class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition flex items-center gap-3 bg-gray-700 font-medium" data-tab="dashboard">
-                <i class="fa-solid fa-terminal w-6 text-center"></i> Console
+            <button onclick="switchTab('dashboard')" class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition flex items-center gap-3 bg-gray-700 font-medium shadow-sm" data-tab="dashboard">
+                <i class="fa-solid fa-terminal w-6 text-center text-green-400"></i> Console
             </button>
-            <button onclick="switchTab('config')" class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition flex items-center gap-3 font-medium" data-tab="config">
-                <i class="fa-solid fa-gears w-6 text-center"></i> Cấu hình
+            <button onclick="switchTab('config')" class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition flex items-center gap-3 font-medium text-gray-400" data-tab="config">
+                <i class="fa-solid fa-gears w-6 text-center text-blue-400"></i> Cấu hình
             </button>
         </nav>
-        <div class="p-4 border-t border-gray-700">
-            <div id="status-badge-desktop" class="flex items-center justify-center gap-2 px-3 py-3 rounded bg-gray-800 text-gray-400 border border-gray-700 font-bold transition-all text-sm">
-                <div class="w-2 h-2 rounded-full bg-gray-500"></div> CONNECTING...
+        
+        <div class="p-5 border-t border-gray-700 space-y-4 bg-black/20">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">Server Stats</span>
+                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            </div>
+            
+            <div class="space-y-1">
+                <div class="flex justify-between text-xs text-gray-400">
+                    <span><i class="fa-solid fa-microchip mr-1"></i> CPU</span>
+                    <span id="pc-cpu" class="font-mono text-white">0%</span>
+                </div>
+                <div class="w-full bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                    <div id="bar-cpu" class="bg-green-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="space-y-1">
+                <div class="flex justify-between text-xs text-gray-400">
+                    <span><i class="fa-solid fa-memory mr-1"></i> RAM</span>
+                    <span id="pc-ram" class="font-mono text-white">0 MB</span>
+                </div>
+                <div class="w-full bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                    <div id="bar-ram" class="bg-purple-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="flex justify-between text-xs pt-2 border-t border-gray-700/50">
+                <span class="text-gray-400"><i class="fa-solid fa-hard-drive mr-1"></i> DISK (Free)</span>
+                <span id="pc-disk" class="font-mono text-blue-400">0 GB</span>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-gray-700 bg-darkcard">
+            <div id="status-badge-desktop" class="flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 font-bold transition-all shadow-inner">
+                <div class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-gray-500"></span>
+                </div>
+                <span class="text-sm text-gray-300">CONNECTING...</span>
             </div>
         </div>
     </aside>
 
     <main class="flex-1 flex flex-col relative overflow-hidden bg-black">
         
-        <div id="tab-dashboard" class="flex flex-col h-full absolute inset-0 z-10 bg-black">
-            <div class="p-2 md:p-4 bg-darkcard border-b border-gray-800 shrink-0 flex gap-2">
-                <button id="btn-start" class="flex-1 py-2 bg-green-600 hover:bg-green-700 rounded font-bold shadow text-white text-sm flex justify-center gap-2 items-center"><i class="fa-solid fa-play"></i> START</button>
-                <button id="btn-stop" class="flex-1 py-2 bg-red-600 hover:bg-red-700 rounded font-bold shadow text-white opacity-50 cursor-not-allowed text-sm flex justify-center gap-2 items-center" disabled><i class="fa-solid fa-power-off"></i> STOP</button>
+        <div id="tab-dashboard" class="flex flex-col h-full absolute inset-0 z-10 bg-black transition-opacity duration-300">
+            
+            <div class="md:hidden flex justify-between px-4 py-2 bg-darkbg border-b border-gray-800 text-[10px] font-mono shadow-md z-20">
+                <div class="flex items-center gap-1"><i class="fa-solid fa-microchip text-gray-500"></i> <span id="mob-cpu" class="text-green-400 font-bold">0%</span></div>
+                <div class="flex items-center gap-1"><i class="fa-solid fa-memory text-gray-500"></i> <span id="mob-ram" class="text-purple-400 font-bold">0 MB</span></div>
+                <div class="flex items-center gap-1"><i class="fa-solid fa-hard-drive text-gray-500"></i> <span id="mob-disk" class="text-blue-400 font-bold">0 GB</span></div>
             </div>
-            <div id="terminal-container" class="flex-1 bg-black overflow-hidden relative w-full h-full"></div>
-            <div class="bg-gray-900 border-t border-gray-700 p-2 flex gap-2 items-center shrink-0 mb-safe pb-safe">
-                <span class="text-green-500 font-bold hidden md:block px-2">input></span>
-                <input type="text" id="console-input" class="flex-1 bg-darkbg border border-gray-600 rounded px-3 py-2 text-white focus:border-purple-500 focus:outline-none placeholder-gray-500 text-sm" placeholder="Nhập lệnh / Chọn Acc..." autocomplete="off">
-                <button id="btn-send-cmd" class="bg-gray-700 text-white px-4 py-2 rounded font-bold text-sm">GỬI</button>
-            </div>
-            <div class="h-14 md:hidden shrink-0 bg-darkcard"></div>
-        </div>
 
-        <div id="tab-config" class="hidden flex flex-col h-full absolute inset-0 bg-darkbg z-10">
-            <div class="p-4 border-b border-gray-800 flex justify-between items-center bg-darkcard z-20 sticky top-0 shrink-0 shadow-md">
-                <h2 class="text-lg font-bold text-white"><i class="fa-solid fa-sliders mr-2 text-purple-500"></i>Cài đặt</h2>
-                <button id="btn-save" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold shadow text-sm flex items-center gap-2 text-white transition-all transform active:scale-95">
-                    <i class="fa-solid fa-floppy-disk"></i> LƯU
+            <div class="p-3 md:p-4 bg-darkcard border-b border-gray-800 shrink-0 flex gap-3 shadow-lg z-20">
+                <button id="btn-start" class="flex-1 py-2.5 bg-green-600 hover:bg-green-700 active:bg-green-800 rounded-lg font-bold text-white text-sm flex justify-center gap-2 items-center transition-all shadow-green-900/50 shadow-lg transform hover:-translate-y-0.5">
+                    <i class="fa-solid fa-play"></i> START BOT
+                </button>
+                <button id="btn-stop" class="flex-1 py-2.5 bg-red-600 hover:bg-red-700 active:bg-red-800 rounded-lg font-bold text-white opacity-50 cursor-not-allowed text-sm flex justify-center gap-2 items-center transition-all shadow-red-900/50 shadow-lg" disabled>
+                    <i class="fa-solid fa-power-off"></i> FORCE STOP
                 </button>
             </div>
-            <div class="flex-1 overflow-y-auto p-4 pb-24 bg-darkbg">
-                <div id="config-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            
+            <div id="terminal-container" class="flex-1 bg-black overflow-hidden relative w-full h-full"></div>
+            
+            <div class="bg-gray-900 border-t border-gray-700 p-2 flex gap-2 items-center shrink-0 mb-safe pb-safe z-20">
+                <span class="text-green-500 font-bold hidden md:block px-2 font-mono">root@owo:~#</span>
+                <input type="text" id="console-input" class="flex-1 bg-darkbg border border-gray-600 rounded-md px-3 py-2 text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 placeholder-gray-600 text-sm font-mono" placeholder="Nhập lệnh / Chọn Acc..." autocomplete="off">
+                <button id="btn-send-cmd" class="bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-white px-4 py-2 rounded-md font-bold text-sm transition-colors">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+
+            <div class="h-16 md:hidden shrink-0 bg-darkcard"></div>
+        </div>
+
+        <div id="tab-config" class="hidden flex flex-col h-full absolute inset-0 bg-darkbg z-10 transition-opacity duration-300">
+            <div class="p-4 border-b border-gray-800 flex justify-between items-center bg-darkcard/95 backdrop-blur z-20 sticky top-0 shrink-0 shadow-md">
+                <div class="flex items-center gap-2">
+                    <div class="bg-blue-600/20 p-2 rounded-lg text-blue-400"><i class="fa-solid fa-sliders"></i></div>
+                    <h2 class="text-lg font-bold text-white">Cài đặt Bot</h2>
+                </div>
+                <button id="btn-save" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 rounded-lg font-bold shadow-lg shadow-blue-900/20 text-sm flex items-center gap-2 text-white transition-all transform active:scale-95">
+                    <i class="fa-solid fa-floppy-disk"></i> LƯU CẤU HÌNH
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-4 md:p-6 pb-24 bg-darkbg scroll-smooth">
+                <div id="config-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    </div>
             </div>
         </div>
 
     </main>
 
-    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-darkcard border-t border-gray-700 flex justify-around items-center h-14 z-50 pb-safe">
-        <button onclick="switchTab('dashboard')" class="nav-item-mobile flex flex-col items-center justify-center w-full h-full text-purple-400" data-tab="dashboard">
-            <i class="fa-solid fa-terminal text-lg mb-0.5"></i> <span class="text-[10px] font-bold">Console</span>
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-darkcard/95 backdrop-blur border-t border-gray-700 flex justify-around items-center h-16 z-50 pb-safe shadow-[0_-5px_15px_rgba(0,0,0,0.3)]">
+        <button onclick="switchTab('dashboard')" class="nav-item-mobile flex flex-col items-center justify-center w-full h-full text-purple-400 active:bg-white/5 transition-colors" data-tab="dashboard">
+            <i class="fa-solid fa-terminal text-xl mb-1"></i>
+            <span class="text-[10px] font-bold">Console</span>
         </button>
-        <button onclick="switchTab('config')" class="nav-item-mobile flex flex-col items-center justify-center w-full h-full text-gray-500" data-tab="config">
-            <i class="fa-solid fa-gears text-lg mb-0.5"></i> <span class="text-[10px] font-bold">Config</span>
+        <button onclick="switchTab('config')" class="nav-item-mobile flex flex-col items-center justify-center w-full h-full text-gray-500 active:bg-white/5 transition-colors" data-tab="config">
+            <i class="fa-solid fa-gears text-xl mb-1"></i>
+            <span class="text-[10px] font-bold">Config</span>
         </button>
     </nav>
 
@@ -108,51 +191,104 @@
         const socket = io();
         let botRunning = false;
 
-        // --- CẤU HÌNH CÁC TAGS (Bạn có thể thêm bớt tùy ý) ---
+        // --- 1. DANH SÁCH TAGS THÔNG MINH (PRESETS) ---
+        // Thêm bớt các tùy chọn ở đây nếu tool cập nhật tính năng mới
         const PRESETS = {
             "gemtier": ["common", "uncommon", "rare", "epic", "mythical", "legendary", "fabled"],
             "autopray": ["pray", "curse"],
             "autotrait": ["gain", "skip", "wait"], 
             "autoquote": ["owo", "uwu"],
-            "channelID": [], 
+            "channelID": [], // Mảng rỗng = nhập tay
         };
 
-        // --- XTERM SETUP ---
-        const term = new Terminal({ cursorBlink: true, theme: { background: '#000000' }, fontFamily: 'monospace', fontSize: 13, convertEol: true, disableStdin: true, rows: 30 });
+        // --- 2. CẤU HÌNH TERMINAL (XTERM.JS) ---
+        const term = new Terminal({
+            cursorBlink: true,
+            theme: {
+                background: '#000000',
+                foreground: '#ffffff',
+                cursor: '#ffffff',
+                selection: '#5c5c5c',
+                black: '#000000',
+                red: '#ef4444',
+                green: '#22c55e',
+                yellow: '#eab308',
+                blue: '#3b82f6',
+                magenta: '#a855f7',
+                cyan: '#06b6d4',
+                white: '#ffffff',
+            },
+            fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+            fontSize: 13, 
+            lineHeight: 1.2,
+            convertEol: true, 
+            disableStdin: true, 
+            rows: 30
+        });
+        
         const fitAddon = new FitAddon.FitAddon();
         term.loadAddon(fitAddon);
         term.open(document.getElementById('terminal-container'));
+        
+        // Fit ngay khi load
         setTimeout(() => fitAddon.fit(), 100);
         window.addEventListener('resize', () => fitAddon.fit());
 
-        // --- ELEMENTS ---
+        // --- 3. ELEMENTS DOM ---
         const configContainer = document.getElementById('config-container');
         const statusBadgeDesktop = document.getElementById('status-badge-desktop');
         const statusBadgeMobile = document.getElementById('status-badge-mobile');
         const btnStart = document.getElementById('btn-start');
         const btnStop = document.getElementById('btn-stop');
+        
+        // Stats Elements
+        const pcCpu = document.getElementById('pc-cpu');
+        const pcRam = document.getElementById('pc-ram');
+        const pcDisk = document.getElementById('pc-disk');
+        const barCpu = document.getElementById('bar-cpu');
+        const barRam = document.getElementById('bar-ram');
+        const mobCpu = document.getElementById('mob-cpu');
+        const mobRam = document.getElementById('mob-ram');
+        const mobDisk = document.getElementById('mob-disk');
 
-        // --- NAVIGATION ---
+        // --- 4. NAVIGATION LOGIC ---
         function switchTab(tabName) {
+            // Ẩn hiện tab
             document.getElementById('tab-dashboard').classList.add('hidden');
             document.getElementById('tab-config').classList.add('hidden');
             document.getElementById(`tab-${tabName}`).classList.remove('hidden');
 
+            // Cập nhật trạng thái nút Menu PC
             document.querySelectorAll('.nav-item').forEach(el => {
-                el.classList.toggle('bg-gray-700', el.dataset.tab === tabName);
-                el.classList.toggle('text-white', el.dataset.tab === tabName);
-                el.classList.toggle('text-gray-400', el.dataset.tab !== tabName);
+                const isActive = el.dataset.tab === tabName;
+                el.classList.toggle('bg-gray-700', isActive);
+                el.classList.toggle('text-white', isActive);
+                el.classList.toggle('text-gray-400', !isActive);
+                el.classList.toggle('shadow-sm', isActive);
+                // Đổi màu icon
+                const icon = el.querySelector('i');
+                if(isActive) icon.className = tabName === 'dashboard' ? 'fa-solid fa-terminal w-6 text-center text-green-400' : 'fa-solid fa-gears w-6 text-center text-blue-400';
+                else icon.className = tabName === 'dashboard' ? 'fa-solid fa-terminal w-6 text-center' : 'fa-solid fa-gears w-6 text-center';
             });
+
+            // Cập nhật trạng thái nút Menu Mobile
             document.querySelectorAll('.nav-item-mobile').forEach(el => {
-                el.classList.toggle('text-purple-400', el.dataset.tab === tabName);
-                el.classList.toggle('text-gray-500', el.dataset.tab !== tabName);
+                const isActive = el.dataset.tab === tabName;
+                el.classList.toggle('text-purple-400', isActive);
+                el.classList.toggle('text-gray-500', !isActive);
             });
-            if (tabName === 'dashboard') setTimeout(() => fitAddon.fit(), 100);
+
+            // Nếu về tab dashboard thì fit lại terminal
+            if (tabName === 'dashboard') {
+                setTimeout(() => fitAddon.fit(), 100);
+            }
         }
 
-        // --- RENDER CONFIG ---
+        // --- 5. CONFIG RENDER ENGINE (QUAN TRỌNG) ---
         function renderConfig(config) {
             configContainer.innerHTML = '';
+            
+            // Phân loại config
             const mainSettings = {};
             const objectSettings = {};
 
@@ -164,24 +300,36 @@
                 }
             }
 
-            if (Object.keys(mainSettings).length > 0) configContainer.appendChild(createCard('Cài đặt chung', 'fa-sliders', mainSettings, ''));
+            // Vẽ "Cài đặt chung" trước
+            if (Object.keys(mainSettings).length > 0) {
+                configContainer.appendChild(createCard('Cài đặt chung', 'fa-sliders', mainSettings, ''));
+            }
+
+            // Vẽ các nhóm khác (Gamble, Inventory, Animals...)
             for (const key in objectSettings) {
                 let icon = 'fa-box';
-                if (key.toLowerCase().includes('gamble')) icon = 'fa-dice';
-                if (key.toLowerCase().includes('inventory')) icon = 'fa-backpack';
+                const lowerKey = key.toLowerCase();
+                if (lowerKey.includes('gamble')) icon = 'fa-dice';
+                else if (lowerKey.includes('inventory')) icon = 'fa-backpack';
+                else if (lowerKey.includes('animals') || lowerKey.includes('zoo')) icon = 'fa-paw';
+                else if (lowerKey.includes('notify')) icon = 'fa-bell';
+                
                 configContainer.appendChild(createCard(key.toUpperCase(), icon, objectSettings[key], key + '.'));
             }
         }
 
+        // Hàm tạo 1 Card Config
         function createCard(title, iconClass, dataObj, prefix) {
             const cardDiv = document.createElement('div');
-            cardDiv.className = 'bg-darkcard rounded-xl border border-gray-700 shadow-lg overflow-hidden flex flex-col';
+            cardDiv.className = 'bg-darkcard rounded-xl border border-gray-700 shadow-lg overflow-hidden flex flex-col hover:border-gray-600 transition-colors duration-300';
             
+            // Header Card
             const header = document.createElement('div');
-            header.className = 'bg-darklighter px-4 py-3 border-b border-gray-700 flex items-center gap-2';
+            header.className = 'bg-darklighter/50 px-4 py-3 border-b border-gray-700 flex items-center gap-2';
             header.innerHTML = `<i class="fa-solid ${iconClass} text-purple-400"></i> <span class="font-bold text-sm tracking-wide text-gray-200">${title}</span>`;
             cardDiv.appendChild(header);
 
+            // Body Card
             const body = document.createElement('div');
             body.className = 'p-4 space-y-4 flex-1';
 
@@ -191,21 +339,27 @@
                 const lowerKey = key.toLowerCase(); 
 
                 const itemRow = document.createElement('div');
-                const labelDiv = document.createElement('div');
-                labelDiv.className = 'text-xs font-bold text-gray-400 uppercase mb-1 flex justify-between items-center';
-                labelDiv.innerText = key;
                 
+                // Label
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'text-xs font-bold text-gray-400 uppercase mb-1.5 flex justify-between items-center';
+                labelDiv.innerText = key.replace(/_/g, ' '); // Thay dấu gạch dưới bằng khoảng trắng cho đẹp
+                
+                // --- TYPE 1: BOOLEAN (TOGGLE SWITCH) ---
                 if (typeof val === 'boolean') {
-                    itemRow.className = 'flex justify-between items-center py-1';
+                    itemRow.className = 'flex justify-between items-center py-1 group';
                     itemRow.innerHTML = `
-                        <span class="text-xs md:text-sm font-medium text-gray-300 uppercase">${key}</span>
+                        <span class="text-xs md:text-sm font-medium text-gray-300 uppercase group-hover:text-white transition-colors">${key}</span>
                         <label class="flex items-center cursor-pointer relative">
-                            <input type="checkbox" id="${fullKey}" class="sr-only peer" ${val ? 'checked' : ''} data-type="bool">
-                            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                            <input type="checkbox" id="${fullKey}" class="sr-only peer toggle-checkbox" ${val ? 'checked' : ''} data-type="bool">
+                            <div class="toggle-label w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full border border-gray-600 transition-all duration-300"></div>
+                            <div class="absolute left-[2px] top-[2px] bg-white w-5 h-5 rounded-full transition-all duration-300 peer-checked:translate-x-full shadow-sm"></div>
                         </label>`;
                 
+                // --- TYPE 2: ARRAY CÓ PRESETS (SMART TAGS) ---
                 } else if (Array.isArray(val) && PRESETS[lowerKey]) {
                     itemRow.appendChild(labelDiv);
+                    
                     const tagsContainer = document.createElement('div');
                     tagsContainer.className = 'flex flex-wrap gap-2 mt-1';
                     tagsContainer.id = fullKey; 
@@ -214,70 +368,117 @@
                     PRESETS[lowerKey].forEach(option => {
                         const isSelected = val.includes(option);
                         const tagLabel = document.createElement('label');
-                        tagLabel.className = 'select-tag cursor-pointer';
+                        tagLabel.className = 'select-tag cursor-pointer group';
                         tagLabel.innerHTML = `
                             <input type="checkbox" class="hidden" value="${option}" ${isSelected ? 'checked' : ''}>
-                            <div class="px-3 py-1.5 rounded-md bg-darkbg border border-gray-600 text-xs font-medium text-gray-400 transition-all hover:border-gray-400 select-none">
+                            <div class="px-3 py-1.5 rounded-md bg-darkbg border border-gray-600 text-xs font-medium text-gray-400 transition-all group-hover:border-gray-500 select-none">
                                 ${option}
-                            </div>`;
+                            </div>
+                        `;
                         tagsContainer.appendChild(tagLabel);
                     });
                     itemRow.appendChild(tagsContainer);
 
+                // --- TYPE 3: ARRAY THƯỜNG (TEXT INPUT) ---
                 } else if (Array.isArray(val)) {
-                    itemRow.className = 'py-1'; itemRow.appendChild(labelDiv);
+                    itemRow.className = 'py-1';
+                    itemRow.appendChild(labelDiv);
                     const input = document.createElement('input');
-                    input.type = 'text'; input.id = fullKey; input.value = JSON.stringify(val);
-                    input.className = 'w-full bg-darkbg border border-gray-600 rounded px-2 py-2 text-xs text-white focus:border-purple-500 outline-none font-mono';
+                    input.type = 'text'; 
+                    input.id = fullKey; 
+                    input.value = JSON.stringify(val);
+                    input.className = 'w-full bg-darkbg border border-gray-600 rounded-lg px-3 py-2 text-xs text-white focus:border-purple-500 outline-none font-mono transition-colors';
                     input.setAttribute('data-type', 'array');
                     itemRow.appendChild(input);
 
+                // --- TYPE 4: NUMBER/STRING ---
                 } else {
-                    itemRow.className = 'py-1'; itemRow.appendChild(labelDiv);
+                    itemRow.className = 'py-1';
+                    itemRow.appendChild(labelDiv);
                     const input = document.createElement('input');
                     input.type = typeof val === 'number' ? 'number' : 'text';
-                    input.id = fullKey; input.value = val;
-                    input.className = 'w-full bg-darkbg border border-gray-600 rounded px-2 py-2 text-sm text-white focus:border-purple-500 outline-none';
+                    input.id = fullKey; 
+                    input.value = val;
+                    input.className = 'w-full bg-darkbg border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:border-purple-500 outline-none transition-colors';
                     input.setAttribute('data-type', typeof val === 'number' ? 'number' : 'string');
                     itemRow.appendChild(input);
                 }
+                
                 body.appendChild(itemRow);
             }
             cardDiv.appendChild(body);
             return cardDiv;
         }
 
-        // --- SAVE CONFIG LOGIC ---
+        // --- 6. SAVE CONFIG LOGIC ---
         document.getElementById('btn-save').addEventListener('click', () => {
+            const btn = document.getElementById('btn-save');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ĐANG LƯU...';
+            btn.disabled = true;
+
             fetch('/api/data').then(r => r.json()).then(d => {
-                const newConfig = { ...d.config };
+                const newConfig = { ...d.config }; // Clone config gốc
+
+                // Thu thập dữ liệu từ các input thường
                 const inputs = document.querySelectorAll('input[id]');
                 inputs.forEach(input => {
-                    if(input.closest('[data-type="tag-group"]')) return;
+                    if(input.closest('[data-type="tag-group"]')) return; // Bỏ qua tags
+
                     const fullKey = input.id;
                     const type = input.getAttribute('data-type');
                     let value;
+
                     if (type === 'bool') value = input.checked;
                     else if (type === 'number') value = Number(input.value);
-                    else if (type === 'array') { try { value = JSON.parse(input.value); } catch { value = input.value.split(','); } }
+                    else if (type === 'array') { 
+                        try { value = JSON.parse(input.value); } 
+                        catch { value = input.value.split(',').map(s => s.trim()); } 
+                    }
                     else value = input.value;
+
                     applyValue(newConfig, fullKey, value);
                 });
 
+                // Thu thập dữ liệu từ các Tag Groups
                 const tagGroups = document.querySelectorAll('[data-type="tag-group"]');
                 tagGroups.forEach(group => {
                     const fullKey = group.id;
                     const selectedValues = [];
-                    group.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => selectedValues.push(cb.value));
+                    group.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+                        selectedValues.push(cb.value);
+                    });
                     applyValue(newConfig, fullKey, selectedValues);
                 });
 
+                // Gửi lên server
                 fetch('/api/config', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(newConfig)
-                }).then(() => alert('Đã lưu cấu hình thành công!'));
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify(newConfig)
+                })
+                .then(res => res.json())
+                .then(res => {
+                    setTimeout(() => {
+                        btn.innerHTML = '<i class="fa-solid fa-check"></i> ĐÃ LƯU!';
+                        btn.className = "px-5 py-2 bg-green-600 rounded-lg font-bold shadow-lg text-sm flex items-center gap-2 text-white";
+                        setTimeout(() => {
+                            btn.innerHTML = originalText;
+                            btn.className = "px-5 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 rounded-lg font-bold shadow-lg text-sm flex items-center gap-2 text-white transition-all transform active:scale-95";
+                            btn.disabled = false;
+                            alert('Đã lưu cấu hình thành công! Hãy Restart bot để áp dụng.');
+                        }, 2000);
+                    }, 500);
+                })
+                .catch(err => {
+                    alert('Lỗi khi lưu: ' + err);
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                });
             });
         });
 
+        // Helper để gán giá trị vào object lồng nhau (inventory.loot)
         function applyValue(configObj, fullKey, value) {
             if (fullKey.includes('.')) {
                 const [parent, child] = fullKey.split('.');
@@ -288,33 +489,116 @@
             }
         }
 
-        // --- INIT & SOCKET ---
-        fetch('/api/data').then(r => r.json()).then(d => { renderConfig(d.config); updateStatusUI(d.status === 'running'); });
+        // --- 7. SOCKET & STATUS LOGIC ---
+        
+        // Load data ban đầu
+        fetch('/api/data').then(r => r.json()).then(d => {
+            renderConfig(d.config);
+            updateStatusUI(d.status === 'running');
+        });
+
+        // Nhận Log Realtime
         socket.on('log', (msg) => term.write(msg));
-        socket.on('history', (msg) => { term.clear(); term.write(msg); });
+        
+        // Nhận History (khi F5)
+        socket.on('history', (msg) => { 
+            term.clear(); 
+            term.write(msg); 
+        });
+
+        // Nhận Status
         socket.on('status', (s) => updateStatusUI(s === 'running'));
+
+        // [MỚI] Nhận Stats (CPU/RAM/DISK)
+        socket.on('stats_update', (stats) => {
+            // Update PC
+            pcCpu.innerText = stats.cpu + '%';
+            barCpu.style.width = stats.cpu + '%'; // Animation thanh bar
+            
+            pcRam.innerText = stats.ram + ' MB';
+            // Giả sử max RAM là 1GB để làm thanh bar (chỉ mang tính minh họa)
+            const ramPercent = Math.min((stats.ram / 1024) * 100, 100); 
+            barRam.style.width = ramPercent + '%';
+
+            pcDisk.innerText = stats.disk;
+            
+            // Update Mobile
+            mobCpu.innerText = stats.cpu + '%';
+            mobRam.innerText = stats.ram + ' MB';
+            mobDisk.innerText = stats.disk;
+        });
 
         function updateStatusUI(isRunning) {
             const text = isRunning ? 'RUNNING' : 'STOPPED';
-            const colorClass = isRunning ? 'text-green-400 bg-green-900/30 border-green-900' : 'text-red-400 bg-red-900/30 border-red-900';
-            statusBadgeMobile.innerText = text; statusBadgeMobile.className = `text-[10px] font-bold px-2 py-0.5 rounded border ${colorClass}`;
-            statusBadgeDesktop.innerHTML = `<div class="w-2 h-2 rounded-full ${isRunning ? 'bg-green-500 animate-pulse' : 'bg-red-500'}"></div> ${text}`;
-            statusBadgeDesktop.className = `flex items-center justify-center gap-2 px-3 py-3 rounded border font-bold transition-all text-sm ${colorClass}`;
-            btnStart.disabled = isRunning; btnStart.classList.toggle('opacity-50', isRunning);
-            btnStop.disabled = !isRunning; btnStop.classList.toggle('opacity-50', !isRunning);
+            
+            // Badge Desktop
+            const badge = document.getElementById('status-badge-desktop');
+            badge.innerHTML = `
+                <span class="relative flex h-3 w-3">
+                  <span class="${isRunning ? 'animate-ping bg-green-400' : 'hidden'} absolute inline-flex h-full w-full rounded-full opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 ${isRunning ? 'bg-green-500' : 'bg-red-500'}"></span>
+                </span>
+                <span>${text}</span>
+            `;
+            badge.className = `flex items-center justify-center gap-3 px-4 py-3 rounded-lg border font-bold transition-all shadow-inner ${isRunning 
+                ? 'bg-green-900/20 border-green-900/50 text-green-400' 
+                : 'bg-red-900/20 border-red-900/50 text-red-400'}`;
+
+            // Badge Mobile
+            const badgeMob = document.getElementById('status-badge-mobile');
+            badgeMob.innerText = text;
+            badgeMob.className = `text-[10px] font-bold px-2 py-0.5 rounded border ${isRunning 
+                ? 'text-green-400 bg-green-900/30 border-green-900' 
+                : 'text-red-400 bg-red-900/30 border-red-900'}`;
+
+            // Buttons State
+            btnStart.disabled = isRunning;
+            btnStart.classList.toggle('opacity-50', isRunning);
+            btnStart.classList.toggle('cursor-not-allowed', isRunning);
+            
+            btnStop.disabled = !isRunning;
+            btnStop.classList.toggle('opacity-50', !isRunning);
+            btnStop.classList.toggle('cursor-not-allowed', !isRunning);
         }
 
-        // --- CONTROL BUTTONS EVENTS (Đã thêm lại) ---
+        // --- 8. CONTROLS EVENTS ---
         btnStart.addEventListener('click', () => {
-            fetch('/api/control', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'start'})});
+            fetch('/api/control', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({action:'start'})
+            });
         });
-        btnStop.addEventListener('click', () => fetch('/api/control', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'stop'})}));
+
+        btnStop.addEventListener('click', () => {
+            if(confirm('Bạn có chắc chắn muốn dừng bot ngay lập tức?')) {
+                fetch('/api/control', {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({action:'stop'})
+                });
+            }
+        });
 
         const consoleInput = document.getElementById('console-input');
-        const sendCmd = () => { fetch('/api/input', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({command: consoleInput.value}) }); consoleInput.value = ''; consoleInput.focus(); };
+        const sendCmd = () => { 
+            const cmd = consoleInput.value;
+            if(!cmd && cmd !== "") return; // Cho phép gửi rỗng (Enter) nhưng chặn null
+            
+            fetch('/api/input', { 
+                method: 'POST', 
+                headers: {'Content-Type':'application/json'}, 
+                body: JSON.stringify({command: cmd}) 
+            }); 
+            consoleInput.value = ''; 
+            consoleInput.focus(); 
+        };
+        
         document.getElementById('btn-send-cmd').addEventListener('click', sendCmd);
-        consoleInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendCmd(); });
+        consoleInput.addEventListener('keypress', (e) => { 
+            if (e.key === 'Enter') sendCmd(); 
+        });
+
     </script>
 </body>
 </html>
-
