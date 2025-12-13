@@ -17,8 +17,8 @@ const httpServer = createServer(app);
 const io = new Server(httpServer);
 
 // --- CẤU HÌNH BẢO MẬT ---
-const PASSWORD = 'admin123'; // <--- ĐỔI MẬT KHẨU TẠI ĐÂY
-const SESSION_SECRET = 'owo_secret_key_change_me'; // Mã bí mật session (gõ gì cũng được)
+const PASSWORD = 'Fireside1414@'; // <--- ĐỔI MẬT KHẨU TẠI ĐÂY
+const SESSION_SECRET = 'Supersecretkey'; // Mã bí mật session (gõ gì cũng được)
 
 // Đường dẫn config
 const CONFIG_PATH = path.join(__dirname, '..', 'b2ki-ados', 'data.json');
