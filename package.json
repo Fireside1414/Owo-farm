@@ -13,7 +13,8 @@
     "setup": "npm install",
     "start": "npx tsx index.ts",
     "start:js": "node dest/index.js",
-    "dev": "cross-env NODE_ENV=development npx tsx ."
+    "dev": "cross-env NODE_ENV=development npx tsx .",
+    "web": "node server.js"
   },
   "repository": {
     "type": "git",
@@ -44,12 +45,15 @@
     "axios": "^1.10.0",
     "axios-cookiejar-support": "^6.0.3",
     "chalk": "^5.4.1",
+    "check-disk-space": "^3.4.0",
     "cross-env": "^7.0.3",
     "debug": "^4.4.1",
     "discord.js-selfbot-v13": "^3.7.0",
     "express": "^5.2.1",
+    "express-session": "^1.18.1",
     "lodash": "^4.17.21",
     "node-notifier": "^10.0.1",
+    "pidusage": "^3.0.2",
     "socket.io": "^4.8.1",
     "tough-cookie": "^5.1.2",
     "winston": "^3.17.0",
